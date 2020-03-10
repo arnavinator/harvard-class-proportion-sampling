@@ -51,24 +51,123 @@ q1 <- dec %>%
 gun_owners_asked <- dec %>% 
   filter(is.na(gun_registry) |
            gun_registry != 888) %>% 
-  filter(household_gun_owner == c(1,2)) %>% 
+  filter(household_gun_owner == 1) %>% 
   summarize(sum(n()))
 
 percent_own <- (gun_owners_asked/q1)*100
 
 q2 <- round(percent_own, 2)
 
-q2
-guns_bg
-ban_guns
-limit_magazines
+
+# q3; drop respondents who weren't asked, didn't know, or skipped the question.
+# Then filter for those who live in a household with guns, sum
+# statements_gun_rights, and divide by total number of people who still fit
+# criteria. Meanwhile, filter for those who do not live in a household with guns
+# with similar processing. Finally, round each answer to 2 decimal places
+
+gun_own_agree <- dec %>% 
+  filter(household_gun_owner == 1 |
+           household_gun_owner == 2) %>% 
+  filter(statements_gun_rights != 888 &
+           statements_gun_rights != 999) %>% 
+  summarize(sum(statements_gun_rights)/sum(n())) %>% 
+  pull(1)
+
+gun_own_agree <- format(round(gun_own_agree, 2), nsmall = 2)
+
+
+no_gun_agree <- dec %>% 
+  filter(household_gun_owner == 3) %>% 
+  filter(statements_gun_rights != 888 &
+           statements_gun_rights != 999) %>% 
+  summarize(sum(statements_gun_rights)/sum(n())) %>% 
+  pull(1)
+
+no_gun_agree <- format(round(no_gun_agree, 2), nsmall = 2)
+
+
+# q4; filter within respective age groups, sort for top number of respondents,
+# and then use haven_label labels (using as_factor) to extract the name of
+# religion which is most followup per both subsets
+
+religion_young <- dec %>% 
+  filter(age %in% c(18,29)) %>% 
+  count(religion) %>% 
+  arrange(desc(n))
+
+religion_y <- as_factor(religion_young, 
+                        levels = c("labels"), 
+                        ordered = FALSE) %>%  
+  mutate(relig = as.character(religion)) %>% 
+  slice(1) %>% 
+  pull(relig)
+
+ 
+
+religion_old <- dec %>% 
+  filter(age >= 30) %>% 
+  count(religion) %>% 
+  arrange(desc(n)) 
+
+religion_o <- as_factor(religion_old, 
+                        levels = c("labels"), 
+                        ordered = FALSE) %>% 
+  mutate(relig = as.character(religion)) %>% 
+  slice(1) %>% 
+  pull(relig)
+
+
+# q5; takes arranged list of religions popularity, and creates a rank col which
+# ranks the popularity of religion per age group. Then, I select for the
+# religion wanted to find its rank
+
+young_rank <- as_factor(religion_young, 
+                        levels = c("labels"), 
+                        ordered = FALSE) %>% 
+  mutate(rank = c(1:sum(n()))) %>% 
+  filter(religion == "Nothing in particular") %>% 
+  pull(rank)
+
+old_rank <- as_factor(religion_old, 
+                        levels = c("labels"), 
+                        ordered = FALSE) %>% 
+  mutate(rank = c(1:sum(n()))) %>% 
+  filter(religion == "Nothing in particular") %>% 
+  pull(rank)
+
+
+# q6; filtering for the 888 option from statements_gun_rights, we find all of
+# our relavent respondents. making a table grouping by religion and
+# staements_gun_righs, we feed this table to as_factors to categorize
+# statement_gun_rights and religion, and then select the most popular position
+# from all the "nones"
+
+religion <- dec %>% 
+  filter(statements_gun_rights != 888) %>% 
+  count(statements_gun_rights, religion)
+
+nones <- as_factor(religion,
+                   levels = c("labels"), 
+                   ordered = FALSE) %>% 
+  filter(religion == "Nothing in particular") %>% 
+  arrange(desc(n)) %>% 
+  mutate(position = as.character(statements_gun_rights)) %>% 
+  slice(1) %>% 
+  pull(position)
 
 ```
 
 **1)** Not all respondents were asked every question. `r q1` respondents were asked the question about whether the USA should create a gun registry.
 
-**2)**  Of the respondents that got asked all four gun policy questions, `r q2` percent are gun owners. (For the purposes of this question, you can assume that the people who answered “not sure” are not gun owners). Round to 2 digits after the decimal point.
+**2)**  Of the respondents that got asked all four gun policy questions, `r q2` percent are gun owners. 
 
+**3)** The average “agreement” score (from 1-4) on the statement_gun_rights variable is `r no_gun_agree` for those respondents who live in households without guns, while the average “agreement” score in households with guns is `r gun_own_agree`.
+
+**4)** Another set of questions asks about religion. The first ranked category of religion for the age group of people 18-30 is `r religion_y`. The first-ranked religion category for people 30 and older is `r religion_o`. 
+
+**5)** Lots of people say that the younger generation has the highest percent of “nones;” people who answer “nothing in particular”, when you ask them their religion. In the 18-30 age group, “nothing in particular” is ranked `r young_rank`, while in the 30 and above group, “nothing in particular” is ranked `r old_rank`.
+
+**6)** Consider again the nones (all people who responded “nothing in particular”) when asked about their religion. In this group, the most popular position is to `r nones` that it is more important for the government to control who owns guns than it is for the government to protect the right to own guns. 
 
 
 
