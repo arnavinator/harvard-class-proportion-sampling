@@ -1,0 +1,74 @@
+---
+title: "ps_5"
+author: "Arnav Srivastava"
+date: "3/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# upload libraries to upload and process data
+
+library(tidyverse)
+library(haven)
+
+
+# upload dta data file 
+
+dec <- read_dta("raw-data/ns20191226/ns20191226.dta")
+
+```
+
+## MadLibs
+
+```{r madlibs, echo = FALSE}
+
+# q1; find total respondents in gun_registry to see total who answered this
+# question. In order to accomodate for the filter function not counting NA
+# induviduals, who were asked the question but chose not to answer, I am
+# explicitly retaining NA values when filtering alongside removing "888" (not
+# asked) from gun_registry respondents to give the total number of people who
+# were asked this question
+
+
+q1 <- dec %>% 
+  select(gun_registry) %>% 
+  filter(is.na(gun_registry) |
+           gun_registry != 888) %>% 
+  summarize(sum(n()))
+
+
+# q2; since all respondents were asked all 3 gun questions other than the
+# registry question (as the codebook indicates the other questions do not have
+# an "888" option), I filtered out the induviduals from the dataset who were
+# "888" for gun_registry to get the number of people who answered all 4
+# quesstions. Then since q1 is the total number of people asked questions, I
+# filtered for all gun owners and divided this number by q1. I multiplied by 100
+# and rounded to 2 decimal places to get the percent of all-respondents who are
+# gun owners
+
+gun_owners_asked <- dec %>% 
+  filter(is.na(gun_registry) |
+           gun_registry != 888) %>% 
+  filter(household_gun_owner == c(1,2)) %>% 
+  summarize(sum(n()))
+
+percent_own <- (gun_owners_asked/q1)*100
+
+q2 <- round(percent_own, 2)
+
+q2
+guns_bg
+ban_guns
+limit_magazines
+
+```
+
+**1)** Not all respondents were asked every question. `r q1` respondents were asked the question about whether the USA should create a gun registry.
+
+**2)**  Of the respondents that got asked all four gun policy questions, `r q2` percent are gun owners. (For the purposes of this question, you can assume that the people who answered “not sure” are not gun owners). Round to 2 digits after the decimal point.
+
+
+
+
