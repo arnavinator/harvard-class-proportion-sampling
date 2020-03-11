@@ -8,11 +8,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# upload libraries to upload and process data
+# upload libraries to upload and process data and make gt table
 
 library(tidyverse)
 library(haven)
-
+library(gt)
 
 # upload dta data file 
 
@@ -169,5 +169,93 @@ nones <- as_factor(religion,
 
 **6)** Consider again the nones (all people who responded “nothing in particular”) when asked about their religion. In this group, the most popular position is to `r nones` that it is more important for the government to control who owns guns than it is for the government to protect the right to own guns. 
 
+## Question 2: Simulations with List Columns
 
+```{r q2, echo = FALSE}
+# 2a; makes a draw cards function which can only take numeric and have
+# replacement when drawing cards
+
+draw_cards <- function(n) {
+   if(!is.numeric(n)) {
+    stop('I am so sorry, but this function only works for numeric input!\n',
+         'You have provided an object of class: ', class(n)[1])
+  }
+  sample(x = c("diamonds", "hearts", "spades", "clubs"), 
+         size = n,
+         replace = TRUE)
+}
+
+
+# 2b; makes a table of 2 cards being drawn 10 times using map
+
+card_table <- tibble(cards = map(1:10, ~ draw_cards(2)))
+
+
+
+# 2c; make a new column which checks for hearts or diamonds in the first and
+# second col to accordingly mark if the card drawn is red or not.
+
+
+card_table <- card_table %>% 
+  mutate(check_red = map_lgl(map_chr(card_table$cards, 1),
+                               ~ ifelse(. %in% c("hearts", "diamonds"), 
+                                        TRUE, 
+                                        FALSE)
+                               ),
+         check_red_2 = map_lgl(map_chr(card_table$cards, 2),
+                               ~ ifelse(. %in% c("hearts", "diamonds"), 
+                                        TRUE, 
+                                        FALSE)
+                               )
+  )
+
+# we then combine both check_red cols to a matrix, which we turn into a list
+# where each item of the list tells if a set of cards are both red, both black,
+# or mixed. I convert this list to characters so that we can check if each row
+# for sets of cards drawn are (TRUE, TRUE), (FALSE, FALSE), or neither, which
+# can identify if cards are both red, both black, or mixed respectively. Now
+# that I have a string which describes each pair of cards, I use function
+# color_outcome (which is compatabile with map function) so that we can see if
+# each pair's description
+
+color_outcome <- function (x) {
+  if (all(x == "c(TRUE, TRUE)")) {
+    "Both red"
+  } else if (all(x == "c(FALSE, FALSE)")) {
+      "Both black"
+  } else {
+      "Mixed"
+  }
+}
+
+ll <- matrix(c(card_table$check_red, card_table$check_red_2), nrow = 10, byrow = FALSE)
+ll <- t(ll)
+bb <- split(ll, rep(1:ncol(ll), each = nrow(ll)))
+bb <- as.character(bb)
+
+card_table <- card_table %>% 
+  mutate(check_combined = map_chr(bb, color_outcome)
+  )
+
+
+# finally, we format our complete table to a gt table, and print it
+
+card_table %>% 
+  gt(auto_align = TRUE) %>% 
+  tab_header(title = "Drawing Two Cards",
+             subtitle = "Card Colors") %>%
+  cols_label(cards = "Draw",
+             check_red = "First card red?",
+             check_red_2 = "Second card red?",
+             check_combined = "Color Outcome"
+             )
+
+
+```
+
+
+
+
+
+Collaborators: None. Check for titles!!!!
 
