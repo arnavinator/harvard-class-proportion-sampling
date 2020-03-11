@@ -250,11 +250,56 @@ card_table %>%
              check_combined = "Color Outcome"
              )
 
+# 2e; copying code from 2d with card_table now run 1000 times
+
+card_table <- tibble(cards = map(1:1000, ~ draw_cards(2)))
+
+card_table <- card_table %>% 
+  mutate(check_red = map_lgl(map_chr(card_table$cards, 1),
+                               ~ ifelse(. %in% c("hearts", "diamonds"), 
+                                        TRUE, 
+                                        FALSE)
+                               ),
+         check_red_2 = map_lgl(map_chr(card_table$cards, 2),
+                               ~ ifelse(. %in% c("hearts", "diamonds"), 
+                                        TRUE, 
+                                        FALSE)
+                               )
+  )
+
+color_outcome <- function (x) {
+  if (all(x == "c(TRUE, TRUE)")) {
+    "Both red"
+  } else if (all(x == "c(FALSE, FALSE)")) {
+      "Both black"
+  } else {
+      "Mixed"
+  }
+}
+
+ll <- matrix(c(card_table$check_red, card_table$check_red_2), nrow = 1000, byrow = FALSE)
+ll <- t(ll)
+bb <- split(ll, rep(1:ncol(ll), each = nrow(ll)))
+bb <- as.character(bb)
+
+card_table <- card_table %>% 
+  mutate(check_combined = map_chr(bb, color_outcome)
+  )
+
+# now that we have the simulation for 1000 trials, we find the probability of
+# mixed by counting mixed and dividing by 1000 trials
+
+probab <- card_table %>% 
+  count(check_combined) %>% 
+  filter(check_combined == "Mixed") %>% 
+  pull(n)/1000
 
 ```
 
+After running 1000 simulations of drawing a pair of cards, the probability of drawing a red card and black card (a mixed pair), is `r probab * 100` percent.
 
 
+## 3
 
 
 Collaborators: None. Check for titles!!!!
