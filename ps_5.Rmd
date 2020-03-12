@@ -301,6 +301,37 @@ After running 1000 simulations of drawing a pair of cards, the probability of dr
 
 ## 3
 
+```{r 3, echo = FALSE}
+
+# made a tibble which had an id col and using rep a grade col. Then I made a
+# percent proportion of students per grade col and rounded the prop to 2 decimal
+# places. Finally, in the ggplot, I used a paste to label each bar with a
+# percent number and the "%" sign, used vjust to make sure labels do not overlap
+# the bars, and added a percent to y-axis labels
+
+pop <- tibble(id = c(1:6120),
+              grade = c(rep("freshman", 1800),
+                        rep("sophomore", 1450),
+                        rep("junior", 1570),
+                        rep("senior", 1300)
+                        )
+              )
+
+pop <- pop %>% 
+  count(grade) %>% 
+  mutate(pct = round((n/6120*100), 2))
+
+ggplot(pop, aes(x = grade, y = pct)) +
+  geom_col() +
+  geom_text(aes(label = paste(as.character(pct),"%"), vjust = -.3),
+            size = 3.2) +
+  labs(title = "University Composition by Grade",
+       subtitle = "Entire Study Population") +
+  scale_y_continuous(labels = c("0%", "10%", "20%", "30%")) +
+  theme_classic()
+
+```
+
 
 Collaborators: None. Check for titles!!!!
 
