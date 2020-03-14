@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(haven)
 library(gt)
+library(infer)
 
 # upload dta data file 
 
@@ -299,9 +300,9 @@ probab <- card_table %>%
 After running 1000 simulations of drawing a pair of cards, the probability of drawing a red card and black card (a mixed pair), is `r probab * 100` percent.
 
 
-## 3
+## Question 3: Modeling a Study Population
 
-```{r 3, echo = FALSE}
+```{r q3, echo = FALSE}
 
 # made a tibble which had an id col and using rep a grade col. Then I made a
 # percent proportion of students per grade col and rounded the prop to 2 decimal
@@ -317,11 +318,11 @@ pop <- tibble(id = c(1:6120),
                         )
               )
 
-pop <- pop %>% 
+pop_comp <- pop %>% 
   count(grade) %>% 
   mutate(pct = round((n/6120*100), 2))
 
-ggplot(pop, aes(x = grade, y = pct)) +
+ggplot(pop_comp, aes(x = grade, y = pct)) +
   geom_col() +
   geom_text(aes(label = paste(as.character(pct),"%"), vjust = -.3),
             size = 3.2) +
@@ -332,6 +333,122 @@ ggplot(pop, aes(x = grade, y = pct)) +
 
 ```
 
+
+## Question 4: Sampling
+
+```{r q4, echo = FALSE}
+
+# set seed to have data distribution to be similar to Preceptor's. then I made a
+# table x which calculates the proportion of freshmen in each sample. Then, I
+# plot a histogram with binwidth and boundaries which are easy to read and
+# capture the distribution of freshman per sample well.
+
+set.seed(02139) 
+
+x <- rep_sample_n(pop, size = 25, reps = 5000) %>% 
+  group_by(replicate) %>%  
+  summarize(frosh = sum(grade == "freshman")) %>% 
+  mutate(prop_frosh = frosh/25)
+
+ggplot(x, aes(x = prop_frosh)) +
+  geom_histogram(binwidth = 0.04, boundary = .24, color = "white") +
+  scale_x_continuous(breaks = c(0.08, 0.16, 0.24, 0.32, 0.4, 0.48, 0.56, 0.64),
+                     labels = c("0.08%", "0.16%", "0.24%", "0.32%", "0.4%", "0.48%", "0.56%", "0.64%")
+                     ) +
+  labs(title = "Harvard Students Proportion of Freshman",
+       subtitle = "Derived from 5000 Virtual Samples of 25 Students",
+       x = "Percent of Freshman",
+       y = "Number of Samples")
+
+```
+
+## Question 5: Sampling and Sample Size
+
+```{r q5, echo = FALSE}
+
+# creates a named list sizes which displays what size a sample was when
+# proportion was calculated to use with map_df
+
+samp_size = c(25,50,100,500)
+sizes <- set_names(samp_size, nm = samp_size)
+
+set.seed(02139)
+
+# use map_df to make a table which samples from pop 5000 times per each size in
+# sizes, and labels which size number each rep slice came from. Then, group_by
+# size and rep number (w/o grouping many samples are not disjoint) and find the
+# proportion of freshman per every rep. calculate prop_frosh with as.numeric
+# size since named list sizes had size vales as chr
+
+university <- map_df(sizes,
+                     ~ rep_sample_n(pop,
+                                    size = .x,
+                                    reps = 5000),
+                     .id = "size"
+                     )  %>% 
+  group_by(size, replicate) %>% 
+  summarize(frosh = sum(grade == "freshman")) %>%    
+  mutate(prop_frosh = frosh/as.numeric(size))
+
+
+# use ggplot geom_density to graph distribution of percentage of freshman count
+# change based on size which was sampled. used factor to relevel size so that
+# legend values appear in the value we desire
+
+university$size <- factor(university$size, levels = c("25", "50", "100", "500"))
+                    
+ggplot(university, aes(x = prop_frosh, fill = size)) +
+  geom_density(alpha = 0.25) +
+  theme_classic() +
+  labs(title = "Distribution of Percentage of Freshmen",
+       subtitle = "Average sampled percentage gets closer to true percentage as sample size increases",
+       x = "Proportion of freshmen",
+       y = "Count")
+  
+
+```
+
+
+## Question 6: Publish Your Plot
+
+Here is the Distribution of Percentage of Freshmen plot from the simulated Harvard College Class:
+
+```{r q6, echo = FALSE}
+
+## importing graphic from rpubs entry
+
+knitr::include_graphics("graphics/dist_by_sample_size.png")
+```
+
+Here is the link to my RPubs account where the same graphic is uploaded: https://rpubs.com/arnavinator/584883
+
+
+## Question 7: Reprex
+
+```{r q7, echo = FALSE}
+# REMOVE AS NUMBERIC FOR YOU REPREX ERROR
+university <- map_df(sizes,
+                     ~ rep_sample_n(pop,
+                                    size = .x,
+                                    reps = 5000),
+                     .id = "size"
+                     )  %>% 
+  group_by(size, replicate) %>% 
+  summarize(frosh = sum(grade == "freshman")) %>%    
+  mutate(prop_frosh = frosh/as.numeric(size))
+
+university$size <- factor(university$size, levels = c("25", "50", "100", "500"))
+                    
+ggplot(university, aes(x = prop_frosh, fill = size)) +
+  geom_density(alpha = 0.25) +
+  theme_classic() +
+  labs(title = "Distribution of Percentage of Freshmen",
+       subtitle = "Average sampled percentage gets closer to true percentage as sample size increases",
+       x = "Proportion of freshmen",
+       y = "Count")
+
+
+```
 
 Collaborators: None. Check for titles!!!!
 
